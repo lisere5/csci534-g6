@@ -1,46 +1,130 @@
-import time
+import os
+import threading
+
 from capture_audio import record_wav
+from capture_video import record_video_features
 from features_audio import transcribe, audio_confusion_features
-from features_eye import capture_eye_features
 from confusion import confusion_score, is_confused
 
+
 LESSON = [
-    "Segment 1: The event begins with ...",
-    "Segment 2: A key turning point was ...",
-    "Segment 3: The outcome was influenced by ...",
+    """On the 6th of November of 1985 the Supreme Court of Colombia, otherwise known as the Palace of Justice, was overrun by a faction of rebels at approximately 11:35 in the morning. The rebels belonged to a guerilla group more formally known as M-19, short for the 19th of April Movement. At the time, Colombia’s president was Belisario Betancur, a proud member of Colombia’s Conservative Party.""",
+
+    """The event was sparked due to the creation of the National Front, a treatise sparked between the respective Liberal and Conservative parties of Colombia to band together and alternate presidency amongst their parties. The joint front was promoted as a means of establishing peace after “La Violencia” - a ten year civil war in Colombia that claimed over 200,000 lives from 1948 to 1958.""",
+
+    """While the National Front formally began in 1958, it was the Colombian presidential election of 1970 that ignited M-19’s rebellion. At this point in Colombian history, the National Front had gained a lot of ire from Colombians as they felt stripped of their political autonomy with little political improvements to show for it. Many Colombians thus felt that a shift from the National Front was necessary, choosing to vote for this hope in the form of leftist ex-president Gustavo Rojas Pinilla - a candidate from the new party known as la Alianza Nacional Popular.""",
+
+    """Pinilla thus went head to head with the National Front’s conservative candidate: Misael Pastrana Borrero. The vote was incredibly close, but the government concluded that Borrero won the campaign by a mere 2,000 votes. While the government was firm in their results, not all parties were in agreement. Several radio stations and newspapers ran reports stating that Pinilla was the rightful winner the day after the election, leading to mass outcry from Colombian citizens who felt the election was stolen.""",
+
+    """The M-19 thus formed in response to the government’s mishandling of the election by a majority of college-age citizens vowing to take the president to trial for his involvement. They thus stormed the Palace of Justice and took a plethora of hostages, some of which were officials incredibly high up in the government. One of the most notable, Alfonso Reyes Echandia, was the Chief Justice of the Supreme Court. Echandia attempted to initiate communications with President Betancur to negotiate a ceasefire, but the President entirely refused to answer his calls and chose to instead lead a brutal assault on the Palace of Justice.""",
+
+    """Tanks and special military units were sent in to take the Palace of Justice back from M-19, yet they were entirely unprepared for the crisis. Helicopters came in with soldiers ready to storm the premises yet were not even given the rope necessary to safely rappel to the building, forcing them to instead jump which led to several injuries. The tanks that came to quell the situation were instead one of the very reasons the Palace of Justice was burnt to ash, leaving over 98 victims dead.""",
+
+    """Although the event was one that demanded international importance, it was heavily covered up by the media. While several reporters were live on the scene relaying updates, the head of the Ministry of Communications, Noemi Sanin, chose to put news transmissions on pause to instead prioritize the airing of a local soccer game. Many citizens viewed this as an act of censorship as no news stations were thus allowed to air updates, sparking further outcry.""",
+
+    """The event now lives in infamy as one of the darkest moments in Colombian history, only further cemented in its position due to the government’s power."""
 ]
 
-def adapt_text(original: str):
-    # Replace later with an LLM call if you want
-    return "Let me re-explain more simply: " + original
+
+CHECK_QUESTIONS = [
+    "Who overran the Palace of Justice, and when did it happen?",
+    "What was the National Front, and why was it created?",
+    "Why did many Colombians become frustrated with the National Front?",
+    "Why was the 1970 election considered controversial?",
+    "Who was Alfonso Reyes Echandia, and what happened when he tried to negotiate?",
+    "How did the military response contribute to the destruction and deaths?",
+    "Why did many people view the media response as censorship?",
+    "Why is this event remembered as such a dark moment in Colombian history?",
+]
+
+
+def adapt_text(original: str) -> str:
+    return (
+        "Let me explain that more simply:\n"
+        + original
+        + "\n\nKey idea: focus on the main cause, the government response, and why this event mattered."
+    )
+
+
+def capture_multimodal_response(audio_path: str, seconds: float = 10.0):
+    results = {
+        "audio_path": None,
+        "eye_features": None,
+        "audio_error": None,
+        "video_error": None,
+    }
+
+    def audio_worker():
+        try:
+            results["audio_path"] = record_wav(audio_path, seconds=seconds)
+        except Exception as e:
+            results["audio_error"] = str(e)
+
+    def video_worker():
+        try:
+            results["eye_features"] = record_video_features(seconds=seconds)
+        except Exception as e:
+            results["video_error"] = str(e)
+
+    t_audio = threading.Thread(target=audio_worker)
+    t_video = threading.Thread(target=video_worker)
+
+    t_audio.start()
+    t_video.start()
+
+    t_audio.join()
+    t_video.join()
+
+    return results
+
 
 def run():
-    for i, seg in enumerate(LESSON, start=1):
-        print("\n" + "="*60)
-        print(f"TEACHING {i}: {seg}")
-        print("Now, explain back what you understood (10 seconds).")
+    os.makedirs("data/sessions", exist_ok=True)
 
-        # Record simultaneously: easiest MVP is sequential capture windows.
-        # For better sync, run audio+video in parallel threads later.
-        eye = capture_eye_features(seconds=10)
-        wav_path = record_wav(f"data/sessions/resp_{i}.wav", seconds=10)
+    for i, paragraph in enumerate(LESSON, start=1):
+        print("\n" + "=" * 80)
+        print(f"PARAGRAPH {i}")
+        print(paragraph)
+        print("\nDoes that make sense?")
+        print("Please answer yes or no, then explain what you understood in your own words.")
+        print("Recording audio and eye tracking for 10 seconds...\n")
+
+        audio_path = f"data/sessions/resp_{i}.wav"
+        capture_results = capture_multimodal_response(audio_path, seconds=10.0)
+
+        if capture_results["audio_error"]:
+            print("Audio capture error:", capture_results["audio_error"])
+            continue
+
+        if capture_results["video_error"]:
+            print("Video capture error:", capture_results["video_error"])
+            continue
+
+        eye = capture_results["eye_features"]
+        wav_path = capture_results["audio_path"]
 
         wres = transcribe(wav_path)
         aud = audio_confusion_features(wres)
-
         score = confusion_score(aud, eye)
 
-        print("\n--- Features ---")
+        print("\n--- RESULTS ---")
         print("Transcript:", aud["transcript"])
-        print("Audio feats:", {k: aud[k] for k in ["word_count","filler_count","long_pause_count","wpm"]})
-        print("Eye feats:", eye)
+        print("Audio features:", aud)
+        print("Eye features:", eye)
         print("Confusion score:", round(score, 3))
 
         if is_confused(score):
-            print("\n[ADAPT] Confusion detected. Adjusting explanation...")
-            print(adapt_text(seg))
+            print("\n[ADAPT] Confusion detected.")
+            print(adapt_text(paragraph))
+            print("\nFollow-up prompt:")
+            print("Can you now explain the main point of this paragraph in one sentence?")
         else:
-            print("\n[OK] Continuing...")
+            print("\n[OK] Understanding seems sufficient.")
+            print("Check question:")
+            print(CHECK_QUESTIONS[i - 1])
+
+    print("\nLesson complete.")
+
 
 if __name__ == "__main__":
     run()
