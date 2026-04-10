@@ -1,25 +1,34 @@
 def confusion_score(audio_feats: dict, eye_feats: dict):
-    # Normalize-ish using simple heuristics (tune after pilot)
-    filler = audio_feats["filler_count"]
-    long_pauses = audio_feats["long_pause_count"]
-    wpm = audio_feats["wpm"]
-
-    blink_rate = eye_feats["blink_rate"]
-    face_missing = eye_feats["face_missing_ratio"]
-
     score = 0.0
-    score += 0.6 * min(filler / 3.0, 1.0)
-    score += 0.8 * min(long_pauses / 2.0, 1.0)
 
-    # Very low speaking rate can mean struggle/hesitation (careful!)
-    if wpm > 0:
-        score += 0.6 * min(max(0.0, (120.0 - wpm) / 120.0), 1.0)
+    filler = audio_feats.get("filler_count", 0)
+    long_pauses = audio_feats.get("long_pause_count", 0)
+    wpm = audio_feats.get("wpm", 0.0)
+    low_response = audio_feats.get("low_response", False)
 
-    # More blinking + looking away can be load/disengagement
-    score += 0.5 * min(blink_rate / 0.6, 1.0)      # ~0.2–0.6 blinks/sec common-ish
-    score += 1.0 * min(face_missing / 0.25, 1.0)   # lots of face-missing = likely looking away
+    blink_rate = eye_feats.get("blink_rate", 0.0)
+    face_missing = eye_feats.get("face_missing_ratio", 0.0)
+
+    if filler >= 3:
+        score += 2.0
+
+    if long_pauses >= 2:
+        score += 2.0
+
+    if low_response:
+        score += 2.0
+
+    if wpm > 0 and wpm < 90:
+        score += 1.0
+
+    if blink_rate > 0.6:
+        score += 1.0
+
+    if face_missing >= 0.20:
+        score += 2.0
 
     return score
 
-def is_confused(score: float, threshold: float = 1.5):
+
+def is_confused(score: float, threshold: float = 3.0):
     return score >= threshold
