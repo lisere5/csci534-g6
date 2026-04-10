@@ -1,3 +1,5 @@
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
 import whisper
 import re
 
@@ -6,7 +8,7 @@ _model = None
 def transcribe(path: str):
     global _model
     if _model is None:
-        _model = whisper.load_model("base")  # tiny/base/small
+        _model = whisper.load_model("tiny")  # tiny/base/small
     result = _model.transcribe(path, fp16=False)
     return result  # contains text + segments + timestamps
 
