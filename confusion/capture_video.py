@@ -1,4 +1,4 @@
-from features_eye import capture_eye_features
+from confusion.features_eye import capture_eye_features
 
 
 def record_video_features(seconds: float = 10.0, cam_index: int = 0):

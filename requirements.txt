@@ -1,0 +1,8 @@
+groq
+python-dotenv
+openai-whisper
+sounddevice
+soundfile
+opencv-python
+mediapipe==0.10.9
+numpy

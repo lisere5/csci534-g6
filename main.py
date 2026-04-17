@@ -1,13 +1,14 @@
 import os
 import threading
 
-from capture_audio import record_wav
-from capture_video import record_video_features
-from features_audio import transcribe, audio_confusion_features
-from confusion import confusion_score, is_confused
+from confusion.capture_audio import record_wav
+from confusion.capture_video import record_video_features
+from confusion.features_audio import transcribe, audio_confusion_features
+from confusion.confusion import confusion_score, is_confused
+from chatbot.llm import adapt_with_llm
 
 try:
-    from tts import speak
+    from chatbot.tts import speak
 except ImportError:
     def speak(text: str):
         print(f"\nTutor: {text}")
@@ -42,17 +43,6 @@ CHECK_QUESTIONS = [
     "Why is this event remembered as such a dark moment in Colombian history?",
 ]
 
-
-def adapt_text(original: str, user_response: str = "") -> str:
-    first_sentence = original.split(".")[0].strip() + "."
-    response_part = f'You said: "{user_response}". ' if user_response else ""
-
-    return (
-        "No worries, let me explain that more simply. "
-        f"{response_part}"
-        f"The main idea is: {first_sentence} "
-        "Focus on the cause of the event, what happened, and why it mattered."
-    )
 
 
 def capture_multimodal_response(audio_path: str, seconds: float = 10.0):
@@ -92,6 +82,8 @@ def run():
 
     speak("Welcome. You will learn about the Palace of Justice siege in Colombia.")
     speak("After each paragraph, please say whether it makes sense and explain what you understood.")
+
+    prior_paragraphs = []
 
     for i, paragraph in enumerate(LESSON, start=1):
         print("\n" + "=" * 80)
@@ -140,7 +132,11 @@ def run():
             if is_confused(score):
                 attempts += 1
                 speak("I think that may have been confusing.")
-                simplified = adapt_text(paragraph, aud["transcript"])
+                try:
+                    simplified = adapt_with_llm(paragraph, prior_paragraphs)
+                except Exception as e:
+                    print(f"[LLM error] {e}")
+                    simplified = "No worries, let me move on. The main idea is: " + paragraph.split(".")[0] + "."
                 print("\n[ADAPT]", simplified)
                 speak(simplified)
 
@@ -156,6 +152,7 @@ def run():
                 speak("Great. Here is a quick check question.")
                 speak(question)
 
+        prior_paragraphs.append(paragraph)
         print("\nEnd of paragraph", i)
 
     speak("Lesson complete. Thank you for participating.")
