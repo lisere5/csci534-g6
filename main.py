@@ -1,11 +1,13 @@
 import os
 import threading
+import time
 
 from confusion.capture_audio import record_wav
 from confusion.capture_video import record_video_features
 from confusion.features_audio import transcribe, audio_confusion_features
 from confusion.confusion import confusion_score, is_confused
 from chatbot.llm import adapt_with_llm
+
 
 try:
     from chatbot.tts import speak
@@ -80,8 +82,12 @@ def capture_multimodal_response(audio_path: str, seconds: float = 10.0):
 def run():
     os.makedirs("data/sessions", exist_ok=True)
 
+    print("Welcome. You will learn about the Palace of Justice siege in Colombia.")
     speak("Welcome. You will learn about the Palace of Justice siege in Colombia.")
+    print("After each paragraph, please say whether it makes sense and explain what you understood.")
     speak("After each paragraph, please say whether it makes sense and explain what you understood.")
+    print("Then you will be asked a question about what you understood. Let's begin.")
+    speak("Then you will be asked a question about what you understood. Let's begin.")
 
     prior_paragraphs = []
 
@@ -145,12 +151,37 @@ def run():
                 else:
                     speak("We will move on for now and come back to the big idea in the next section.")
             else:
-                understood = True
                 question = CHECK_QUESTIONS[i - 1]
                 print("\n[OK] Understanding seems sufficient.")
                 print("Check question:", question)
                 speak("Great. Here is a quick check question.")
                 speak(question)
+                print("Please answer the question based on what you understood.")
+                speak("Please answer the question based on what you understood.")
+                print("Recording audio and eye tracking for 5 seconds...")
+                time.sleep(5)
+
+                print("Great! Would you like to \n1.)review the paragraph again \nor \n2.)move on to the next one?")
+                speak("Great! Would you like to 1.) review the paragraph again or 2.) move on to the next one?")
+                answer = input("Type 1 to review, 2 to move on: ").strip()
+
+                if answer == "1" and attempts < max_attempts:
+                    attempts += 1
+                    print("Sure, let's review the paragraph again.")
+                    speak("Sure, let's review the paragraph again.")
+                    try:
+                        simplified = adapt_with_llm(paragraph, prior_paragraphs)
+                    except Exception as e:
+                        print(f"[LLM error] {e}")
+                        simplified = "No worries, let me move on. The main idea is: " + paragraph.split(".")[0] + "."
+                    print("\n[ADAPT]", simplified)
+                    speak(simplified)
+                else:
+                    understood = True
+                    print("Sounds good, let's move on to the next paragraph.")
+                    speak("Sounds good, let's move on to the next paragraph.")
+
+
 
         prior_paragraphs.append(paragraph)
         print("\nEnd of paragraph", i)
