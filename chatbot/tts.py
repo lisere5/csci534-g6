@@ -2,61 +2,82 @@ import os
 from gtts import gTTS
 from playsound import playsound
 
-text = """
-On the 6th of November of 1985 the Supreme Court of Colombia, otherwise known as the Palace of Justice, 
-was overrun by a faction of rebels at approximately 11:35 in the morning. The rebels belonged to a guerilla 
-group more formally known as the M-19, short for the 19th of April Movement. At the time, Colombia's president 
-was Belisario Betancur, a proud member of Colombia's Conservative Party.
+import platform
+import subprocess
+import json
 
-The event was sparked due to the creation of the National Front, a treatise enacted by the Liberal and 
-Conservative parties of Colombia in which they would agree to alternate presidency amongst their respective 
-parties. The joint front was promoted by both parties as an alleged means of establishing peace after 
-"La Violencia" - a ten year civil war in Colombia that claimed over 200,000 lives from 1948 to 1958.
+def speak(text):
+    if not text or not text.strip():
+        return
 
-While the National Front formally began in 1958, it was the Colombian presidential election of 1970 that 
-ignited M-19's rebellion. At this point in Colombian history, the National Front had gained a lot of ire 
-from Colombians as they felt stripped of their political autonomy with little improvements to their quality 
-of life to show for it. Many Colombians thus felt that a shift from the National Front was necessary, choosing 
-to vote for this hope in the form of leftist ex-president Gustavo Rojas Pinilla - a candidate from the new 
-party known as la Alianza Nacional Popular.
-
-Pinilla thus went head to head with the National Front's conservative candidate: Misael Pastrana Borrero. 
-The vote was incredibly close, but the government concluded that Borrero won the campaign by a mere 2,000 votes. 
-While the government was firm in their results, not all parties were in agreement as several radio stations and 
-newspapers ran reports stating that Pinilla was the rightful winner, leading to mass outcry from Colombian 
-citizens who felt the election was stolen.
-
-The M-19 thus formed in response to the government's mishandling of the election by a majority of college-age 
-citizens who vowed to take the president to trial for his involvement. They thus stormed the Palace of Justice 
-and took a plethora of hostages, some of which were officials incredibly high up in the Colombian government. 
-One of the most notable, Alfonso Reyes Echandia, was the Chief Justice of the Colombian Supreme Court. Echandia 
-attempted to initiate communications with President Betancur via radio broadcast to negotiate a ceasefire, but 
-the President entirely refused to answer his calls. Instead, the government sent the army to lead a brutal 
-assault on M-19 at the Palace of Justice.
-
-Tanks and special military units were sent in to take the Palace of Justice back from M-19, yet they were 
-entirely unprepared for the crisis. Helicopters came in with soldiers ready to storm the premises yet were not 
-even given the rope necessary to safely rappel down to the building, forcing them to instead jump, a course of 
-action which resulted in several injuries. Tanks and other heavy artillery were also sent to the site of combat, 
-resulting in the Palace of Justice being burnt to ash as explosions from both sides of the conflict razed the 
-palace to the ground, leaving over 98 victims dead.
-
-Although the event was one of immense importance to the Colombian people, it was heavily covered up by the media. 
-While several reporters were live on the scene relaying updates, the head of the Ministry of Communications, 
-Noemi Sanin, chose to put news transmissions on pause to instead prioritize the airing of a local soccer game. 
-Many citizens viewed this as an act of censorship as no news stations were thus allowed to air updates, sparking 
-further outcry.
-
-The event now lives in infamy as one of the darkest moments in Colombian history, only further cemented in its 
-position due to the government's treatment of the few surviving hostages. Over 10 survivors went missing after 
-being rescued and subsequently arrested by the Colombian government due to alleged suspicions of collaboration 
-with M-19. The families of said victims are still fighting for justice to this day as evidence of the Colombian 
-government's involvement in the disappearances has only been declassified as recently as September 19, 2023.
+    if platform.system() == "Darwin":
+        subprocess.run(["say", text], check=False)
+    elif platform.system() == "Windows":
+        ps_script = f"""
+Add-Type -AssemblyName System.Speech
+$synth = New-Object System.Speech.Synthesis.SpeechSynthesizer
+$synth.Speak({json.dumps(text)})
 """
+        subprocess.run(["powershell", "-Command", ps_script], check=False)
+    else:
+        print(f"Tutor: {text}")
 
-print("Reading document out loud...")
-tts = gTTS(text=text, lang='en', tld='com', slow=False)
-tts.save("output.mp3")
-playsound("output.mp3")
-os.remove("output.mp3")
-print("Done.")
+# text = """
+# On the 6th of November of 1985 the Supreme Court of Colombia, otherwise known as the Palace of Justice, 
+# was overrun by a faction of rebels at approximately 11:35 in the morning. The rebels belonged to a guerilla 
+# group more formally known as the M-19, short for the 19th of April Movement. At the time, Colombia's president 
+# was Belisario Betancur, a proud member of Colombia's Conservative Party.
+
+# The event was sparked due to the creation of the National Front, a treatise enacted by the Liberal and 
+# Conservative parties of Colombia in which they would agree to alternate presidency amongst their respective 
+# parties. The joint front was promoted by both parties as an alleged means of establishing peace after 
+# "La Violencia" - a ten year civil war in Colombia that claimed over 200,000 lives from 1948 to 1958.
+
+# While the National Front formally began in 1958, it was the Colombian presidential election of 1970 that 
+# ignited M-19's rebellion. At this point in Colombian history, the National Front had gained a lot of ire 
+# from Colombians as they felt stripped of their political autonomy with little improvements to their quality 
+# of life to show for it. Many Colombians thus felt that a shift from the National Front was necessary, choosing 
+# to vote for this hope in the form of leftist ex-president Gustavo Rojas Pinilla - a candidate from the new 
+# party known as la Alianza Nacional Popular.
+
+# Pinilla thus went head to head with the National Front's conservative candidate: Misael Pastrana Borrero. 
+# The vote was incredibly close, but the government concluded that Borrero won the campaign by a mere 2,000 votes. 
+# While the government was firm in their results, not all parties were in agreement as several radio stations and 
+# newspapers ran reports stating that Pinilla was the rightful winner, leading to mass outcry from Colombian 
+# citizens who felt the election was stolen.
+
+# The M-19 thus formed in response to the government's mishandling of the election by a majority of college-age 
+# citizens who vowed to take the president to trial for his involvement. They thus stormed the Palace of Justice 
+# and took a plethora of hostages, some of which were officials incredibly high up in the Colombian government. 
+# One of the most notable, Alfonso Reyes Echandia, was the Chief Justice of the Colombian Supreme Court. Echandia 
+# attempted to initiate communications with President Betancur via radio broadcast to negotiate a ceasefire, but 
+# the President entirely refused to answer his calls. Instead, the government sent the army to lead a brutal 
+# assault on M-19 at the Palace of Justice.
+
+# Tanks and special military units were sent in to take the Palace of Justice back from M-19, yet they were 
+# entirely unprepared for the crisis. Helicopters came in with soldiers ready to storm the premises yet were not 
+# even given the rope necessary to safely rappel down to the building, forcing them to instead jump, a course of 
+# action which resulted in several injuries. Tanks and other heavy artillery were also sent to the site of combat, 
+# resulting in the Palace of Justice being burnt to ash as explosions from both sides of the conflict razed the 
+# palace to the ground, leaving over 98 victims dead.
+
+# Although the event was one of immense importance to the Colombian people, it was heavily covered up by the media. 
+# While several reporters were live on the scene relaying updates, the head of the Ministry of Communications, 
+# Noemi Sanin, chose to put news transmissions on pause to instead prioritize the airing of a local soccer game. 
+# Many citizens viewed this as an act of censorship as no news stations were thus allowed to air updates, sparking 
+# further outcry.
+
+# The event now lives in infamy as one of the darkest moments in Colombian history, only further cemented in its 
+# position due to the government's treatment of the few surviving hostages. Over 10 survivors went missing after 
+# being rescued and subsequently arrested by the Colombian government due to alleged suspicions of collaboration 
+# with M-19. The families of said victims are still fighting for justice to this day as evidence of the Colombian 
+# government's involvement in the disappearances has only been declassified as recently as September 19, 2023.
+# """
+
+# print("Reading document out loud...")
+# tts = gTTS(text=text, lang='en', tld='com', slow=False)
+# tts.save("output.mp3")
+# playsound("output.mp3")
+# os.remove("output.mp3")
+# print("Done.")
+
